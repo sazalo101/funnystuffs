@@ -35,9 +35,24 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
-// TON Connect setup
+// Custom storage implementation for TON Connect
+const customStorage = {
+  storage: {},
+  getItem(key) {
+    return this.storage[key] || null;
+  },
+  setItem(key, value) {
+    this.storage[key] = value;
+  },
+  removeItem(key) {
+    delete this.storage[key];
+  },
+};
+
+// TON Connect setup with custom storage
 const connector = new TonConnect({
-  manifestUrl: 'https://your-app.com/tonconnect-manifest.json', // Replace with your manifest URL
+  manifestUrl: 'https://predictor-liard.vercel.app/tonconnect-manifest.json', // Replace with your manifest URL
+  storage: customStorage, // Use custom storage
 });
 
 // Create a prediction
@@ -107,6 +122,19 @@ app.get('/predictions', (req, res) => {
   });
 });
 
+// Fetch bets for a specific prediction
+app.get('/bets/:predictionId', (req, res) => {
+  const { predictionId } = req.params;
+  db.all('SELECT * FROM bets WHERE predictionId = ?', [predictionId], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+    } else {
+      res.json(rows);
+    }
+  });
+});
+
+// Start the server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
